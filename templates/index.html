@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en" data-bs-theme="dark">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Student Performance Predictor · SML Final Project</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+</head>
+<body data-bs-spy="scroll" data-bs-target="#nav" data-bs-offset="90">
+<div class="bg-orbs" aria-hidden="true"><i></i><i></i><i></i></div>
+<div class="progress-top" id="scroll-progress"></div>
+
+<nav class="navbar navbar-expand-lg sticky-top topbar">
+ <div class="container-xl">
+  <a class="navbar-brand brand" href="#predict"><span class="logo-dot"></span>Marksheet<span class="ml">.ml</span></a>
+  <button class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#nav"><span class="navbar-toggler-icon"></span></button>
+  <div class="collapse navbar-collapse" id="nav"><div class="navbar-nav ms-auto gap-lg-1">
+   <a class="nav-link" href="#predict">Predict</a><a class="nav-link" href="#overview">Overview</a>
+   <a class="nav-link" href="#eda">Data explorer</a><a class="nav-link" href="#models">Models</a><a class="nav-link" href="#history">History</a>
+  </div></div>
+ </div>
+</nav>
+
+<main class="container-xl pb-5">
+
+<!-- ============ PREDICTOR (top) ============ -->
+<section id="predict" class="pt-5">
+ <p class="kicker"><span class="chip-live"></span>BTech CSE · Statistical Machine Learning · Final project</p>
+ <h1 class="display">What will this student <span class="grad">score</span>?</h1>
+ <p class="lead-sm">Move the sliders, pick the background, and the best of three regression models — trained on <b id="k-rows">…</b> real student records — estimates the exam score.</p>
+ <div class="row g-4 mt-1">
+  <div class="col-lg-7"><form id="form" class="panel glow" autocomplete="off">
+   <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-1">
+    <h2 class="m-0"><span class="h-ico">📚</span>Study habits</h2>
+    <div class="d-flex gap-2">
+     <button type="button" class="btn btn-ghost btn-sm" id="btn-random">🎲 Randomize</button>
+     <button type="button" class="btn btn-ghost btn-sm" id="btn-reset">↺ Reset</button>
+    </div>
+   </div>
+   <div class="row g-3 mt-0" id="f-num"></div>
+   <h2 class="mt-4"><span class="h-ico">🏠</span>Background and environment</h2>
+   <div class="row g-3" id="f-cat"></div>
+   <div class="d-flex align-items-center flex-wrap gap-3 mt-4">
+    <button class="btn btn-ink" id="btn-predict" type="submit"><span>Predict exam score</span><i class="arrow">→</i></button>
+    <span class="text-danger" id="form-err"></span>
+   </div>
+  </form></div>
+  <div class="col-lg-5"><div class="panel result sticky-lg-top" id="result" style="top:84px;height:auto"></div></div>
+ </div>
+</section>
+
+<!-- ============ OVERVIEW ============ -->
+<section id="overview" class="pt-6 reveal">
+ <h2 class="sec"><span class="sec-no">01</span>Overview</h2>
+ <div class="row g-3 mb-3" id="kpis"></div>
+ <div class="row g-3">
+  <div class="col-lg-7"><div class="panel"><h2>Distribution of exam scores</h2><div class="chart-box"><canvas id="c-hist"></canvas></div></div></div>
+  <div class="col-lg-5"><div class="panel"><h2>Correlation with exam score</h2><div class="chart-box"><canvas id="c-corr"></canvas></div></div></div>
+ </div>
+</section>
+
+<section id="eda" class="pt-6 reveal">
+ <h2 class="sec"><span class="sec-no">02</span>Data explorer</h2>
+ <div class="row g-3">
+  <div class="col-lg-6"><div class="panel"><div class="d-flex justify-content-between align-items-center gap-2"><h2>Numeric feature vs score</h2><select id="sel-num" class="form-select form-select-sm w-auto"></select></div>
+   <p class="note">400 random students plotted; line is a least-squares fit on all rows.</p><div class="chart-box"><canvas id="c-scatter"></canvas></div></div></div>
+  <div class="col-lg-6"><div class="panel"><div class="d-flex justify-content-between align-items-center gap-2"><h2>Average score by category</h2><select id="sel-cat" class="form-select form-select-sm w-auto"></select></div>
+   <p class="note">Mean exam score per group; counts are in the tooltip.</p><div class="chart-box"><canvas id="c-cat"></canvas></div></div></div>
+  <div class="col-lg-8"><div class="panel"><h2>Correlation matrix (numeric features)</h2><div class="table-responsive" id="heat"></div></div></div>
+  <div class="col-lg-4"><div class="panel"><h2>Data quality</h2><div id="quality"></div></div></div>
+ </div>
+</section>
+
+<section id="models" class="pt-6 reveal">
+ <h2 class="sec"><span class="sec-no">03</span>Model comparison</h2>
+ <div class="panel mb-3"><div class="table-responsive"><table class="table align-middle mb-2" id="metric-table"></table></div>
+  <p class="note mb-0" id="criterion"></p></div>
+ <div class="row g-3">
+  <div class="col-lg-6"><div class="panel"><h2>Error on test set (lower is better)</h2><div class="chart-box"><canvas id="c-err"></canvas></div></div></div>
+  <div class="col-lg-6"><div class="panel"><h2>R² on test set (higher is better)</h2><div class="chart-box"><canvas id="c-r2"></canvas></div></div></div>
+  <div class="col-lg-6"><div class="panel"><div class="d-flex justify-content-between align-items-center gap-2"><h2>Feature importance</h2><select id="sel-imp" class="form-select form-select-sm w-auto"></select></div>
+   <p class="note" id="imp-note"></p><div class="chart-box tall"><canvas id="c-imp"></canvas></div></div></div>
+  <div class="col-lg-6"><div class="panel"><div class="d-flex justify-content-between align-items-center gap-2"><h2>Actual vs predicted</h2><select id="sel-avp" class="form-select form-select-sm w-auto"></select></div>
+   <p class="note">Each dot is one unseen test student. Points on the dashed line are perfect predictions.</p><div class="chart-box tall"><canvas id="c-avp"></canvas></div></div></div>
+  <div class="col-12"><div class="panel"><h2>Residuals (actual − predicted) for the selected model</h2><div class="chart-box short"><canvas id="c-res"></canvas></div></div></div>
+ </div>
+</section>
+
+<section id="history" class="pt-6 reveal">
+ <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+  <h2 class="sec mb-0"><span class="sec-no">04</span>Prediction history</h2>
+  <div class="d-flex gap-2"><a class="btn btn-ghost btn-sm" href="/api/history/download">⬇ Download CSV</a>
+   <button class="btn btn-danger-soft btn-sm" id="btn-clear">Clear history</button></div>
+ </div>
+ <div class="panel mt-3"><div class="table-responsive"><table class="table table-sm align-middle mb-0" id="hist-table"></table></div></div>
+</section>
+</main>
+<footer class="foot">Built with Flask, scikit-learn, Chart.js and Bootstrap. Predictions are model estimates from a public educational dataset, not guarantees.</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body></html>
